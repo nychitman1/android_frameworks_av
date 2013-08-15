@@ -103,6 +103,7 @@ public:
     void                sendObjectAdded(MtpObjectHandle handle);
     void                sendObjectRemoved(MtpObjectHandle handle);
     void                sendDevicePropertyChanged(MtpDeviceProperty property);
+    void                sendObjectUpdated(MtpObjectHandle handle);
 
 private:
     MtpStorage*         getStorageLocked(MtpStorageID id);
