@@ -27,7 +27,7 @@ LOCAL_SHARED_LIBRARIES += \
         libmediadrm \
         libnativewindow \
         libstagefright \
-        android.hardware.media.omx@1.0 \
+        android.hardware.media.omx@1.0
 
 LOCAL_CFLAGS += -Wno-multichar -Werror
 
@@ -68,7 +68,7 @@ LOCAL_SHARED_LIBRARIES += \
         libmediadrm \
         libnativewindow \
         libstagefright \
-        android.hardware.media.omx@1.0 \
+        android.hardware.media.omx@1.0
 
 LOCAL_CFLAGS += -Wno-multichar -Werror
 

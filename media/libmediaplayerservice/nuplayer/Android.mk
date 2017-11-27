@@ -41,10 +41,10 @@ LOCAL_SHARED_LIBRARIES :=       \
     libgui                      \
     libmedia                    \
     libmediadrm                 \
+    libcrypto                   \
 
 LOCAL_MODULE:= libstagefright_nuplayer
 
 LOCAL_MODULE_TAGS := eng
 
 include $(BUILD_STATIC_LIBRARY)
-

@@ -4303,6 +4303,8 @@ status_t ACodec::setupAVCEncoderParameters(const sp<AMessage> &msg) {
         err = verifySupportForProfileAndLevel(profile, level);
 
         if (err != OK) {
+            ALOGE("%s does not support profile %x @ level %x",
+                    mComponentName.c_str(), profile, level);
             return err;
         }
 
@@ -7726,6 +7728,14 @@ void ACodec::onSignalEndOfInputStream() {
     mCallback->onSignaledInputEOS(err);
 }
 
+sp<IOMXObserver> ACodec::createObserver() {
+    sp<CodecObserver> observer = new CodecObserver;
+    sp<AMessage> notify = new AMessage(kWhatOMXMessageList, this);
+    notify->setInt32("generation", this->mNodeGeneration);
+    observer->setNotificationMessage(notify);
+    return observer;
+}
+
 void ACodec::forceStateTransition(int generation) {
     if (generation != mStateGeneration) {
         ALOGV("Ignoring stale force state transition message: #%d (now #%d)",
@@ -7748,14 +7758,6 @@ void ACodec::forceStateTransition(int generation) {
     } else {
         changeState(mExecutingToIdleState);
     }
-}
-
-sp<IOMXObserver> ACodec::createObserver() {
-    sp<CodecObserver> observer = new CodecObserver;
-    sp<AMessage> notify = new AMessage(kWhatOMXMessageList, this);
-    notify->setInt32("generation", this->mNodeGeneration);
-    observer->setNotificationMessage(notify);
-    return observer;
 }
 
 bool ACodec::ExecutingState::onOMXFrameRendered(int64_t mediaTimeUs, nsecs_t systemNano) {

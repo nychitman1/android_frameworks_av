@@ -29,6 +29,7 @@
 #include <hardware/camera.h>
 
 #include <common/CameraProviderManager.h>
+#include <vendor/qti/hardware/camera/device/1.0/IQCameraDeviceCallback.h>
 
 namespace android {
 
@@ -85,7 +86,7 @@ typedef void (*data_callback_timestamp_batch)(
 
 class CameraHardwareInterface :
         public virtual RefBase,
-        public virtual hardware::camera::device::V1_0::ICameraDeviceCallback,
+        public virtual vendor::qti::hardware::camera::device::V1_0::IQCameraDeviceCallback,
         public virtual hardware::camera::device::V1_0::ICameraDevicePreviewCallback {
 
 public:
@@ -432,6 +433,10 @@ private:
             hardware::camera::device::V1_0::DataCallbackMsg msgType,
             const hardware::hidl_vec<
                     hardware::camera::device::V1_0::HandleTimestampMessage>&) override;
+    hardware::Return<void> QDataCallback(
+            hardware::camera::device::V1_0::DataCallbackMsg msgType,
+            uint32_t data, uint32_t bufferIndex,
+            const vendor::qti::hardware::camera::device::V1_0::QCameraFrameMetadata& metadata) override;
 
     /**
      * Implementation of android::hardware::camera::device::V1_0::ICameraDevicePreviewCallback
@@ -523,6 +528,7 @@ private:
     uint64_t mNextBufferId = 1;
     static const uint64_t BUFFER_ID_NO_BUFFER = 0;
 
+    std::mutex mHidlMemPoolMapLock; // protecting mHidlMemPoolMap
     std::unordered_map<int, camera_memory_t*> mHidlMemPoolMap;
 };
 

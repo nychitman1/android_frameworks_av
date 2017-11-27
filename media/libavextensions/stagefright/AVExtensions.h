@@ -44,6 +44,7 @@ namespace android {
 struct ACodec;
 struct MediaCodec;
 struct ALooper;
+class IMediaExtractor;
 class MediaExtractor;
 class AudioParameter;
 class MetaData;
@@ -156,8 +157,8 @@ struct AVUtils {
     virtual void cacheCaptureBuffers(sp<hardware::ICamera> camera, video_encoder encoder);
     virtual void getHFRParams(bool*, int32_t*, sp<AMessage>);
     virtual int64_t overwriteTimeOffset(bool, int64_t, int64_t *, int64_t, int32_t);
-    virtual const char *getCustomCodecsLocation();
-    virtual const char *getCustomCodecsPerformanceLocation();
+    virtual void getCustomCodecsLocation(char *, int32_t);
+    virtual void getCustomCodecsPerformanceLocation(char *, int32_t);
 
     virtual void setIntraPeriod(
                 int nPFrames, int nBFrames, sp<IOMXNode> mOMXNode);
@@ -168,6 +169,8 @@ struct AVUtils {
     // Used by ATSParser
     virtual bool IsHevcIDR(const sp<ABuffer> &accessUnit);
 
+    virtual sp<DataSource> wrapTraceDataSource(const sp<DataSource> &dataSource);
+    virtual sp<IMediaExtractor> wrapTraceMediaExtractor(const sp<IMediaExtractor> &extractor);
     virtual sp<AMessage> fillExtradata(sp<MediaCodecBuffer>&, sp<AMessage> &format);
 
     // ----- NO TRESSPASSING BEYOND THIS LINE ------

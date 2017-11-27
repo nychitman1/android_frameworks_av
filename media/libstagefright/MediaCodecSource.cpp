@@ -17,6 +17,8 @@
 //#define LOG_NDEBUG 0
 #define LOG_TAG "MediaCodecSource"
 #define DEBUG_DRIFT_TIME 0
+#define TRACE_SUBMODULE VTRACE_SUBMODULE_MUX
+#define __CLASS__ "MediaCodecSource"
 
 #include <inttypes.h>
 
@@ -400,12 +402,18 @@ status_t MediaCodecSource::read(
     if (!output->mEncoderReachedEOS) {
         *buffer = *output->mBufferQueue.begin();
         output->mBufferQueue.erase(output->mBufferQueue.begin());
+        int64_t timeUs = 0;
+        (*buffer)->meta_data()->findInt64(kKeyTime, &timeUs);
+        VTRACE_ASYNC_BEGIN(mIsVideo?"write-video":"write-audio", (int)timeUs);
         return OK;
     }
     return output->mErrorCode;
 }
 
 void MediaCodecSource::signalBufferReturned(MediaBuffer *buffer) {
+    int64_t timeUs = 0;
+    buffer->meta_data()->findInt64(kKeyTime, &timeUs);
+    VTRACE_ASYNC_END(mIsVideo?"write-video":"write-audio", (int)timeUs);
     buffer->setObserver(0);
     buffer->release();
 }
@@ -750,8 +758,8 @@ status_t MediaCodecSource::feedEncoderInputBuffers() {
 }
 
 status_t MediaCodecSource::onStart(MetaData *params) {
-    if (mStopping) {
-        ALOGE("Failed to start while we're stopping");
+    if (mStopping | mOutput.lock()->mEncoderReachedEOS) {
+        ALOGE("Failed to start while we're stopping or encoder already stopped due to EOS error");
         return INVALID_OPERATION;
     }
     int64_t startTimeUs;
@@ -1114,6 +1122,14 @@ void MediaCodecSource::onMessageReceived(const sp<AMessage> &msg) {
     }
     default:
         TRESPASS();
+    }
+}
+
+void MediaCodecSource::notifyPerformanceMode() {
+    if (mIsVideo && mEncoder != NULL) {
+        sp<AMessage> params = new AMessage;
+        params->setInt32("qti.request.perf", true);
+        mEncoder->setParameters(params);
     }
 }
 

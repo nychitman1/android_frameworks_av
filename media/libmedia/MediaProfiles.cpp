@@ -28,6 +28,7 @@
 #include <media/stagefright/foundation/ADebug.h>
 #include <OMX_Video.h>
 #include <sys/stat.h>
+#include "media/AVMediaExtensions.h"
 
 namespace android {
 

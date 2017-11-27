@@ -16,6 +16,8 @@
 
 //#define LOG_NDEBUG 0
 #define LOG_TAG "NuPlayerRenderer"
+#define TRACE_SUBMODULE VTRACE_SUBMODULE_RENDER
+#define __CLASS__ "NuPlayer::Renderer"
 #include <utils/Log.h>
 
 #include "NuPlayerRenderer.h"
@@ -36,6 +38,7 @@
 
 #include "mediaplayerservice/AVNuExtensions.h"
 #include "stagefright/AVExtensions.h"
+
 namespace android {
 
 /*
@@ -132,6 +135,7 @@ NuPlayer::Renderer::Renderer(
       mLastAudioBufferDrained(0),
       mUseAudioCallback(false),
       mWakeLock(new AWakeLock()) {
+    VTRACE_METHOD();
     mMediaClock = new MediaClock;
     mPlaybackRate = mPlaybackSettings.mSpeed;
     mMediaClock->setPlaybackRate(mPlaybackRate);
@@ -161,6 +165,10 @@ void NuPlayer::Renderer::queueBuffer(
         bool audio,
         const sp<MediaCodecBuffer> &buffer,
         const sp<AMessage> &notifyConsumed) {
+    int64_t mediaTimeUs = -1;
+    buffer->meta()->findInt64("timeUs", &mediaTimeUs);
+    VTRACE_ASYNC_BEGIN(audio? "render-audio" : "render-video", (int)mediaTimeUs);
+
     sp<AMessage> msg = new AMessage(kWhatQueueBuffer, this);
     msg->setInt32("queueGeneration", getQueueGeneration(audio));
     msg->setInt32("audio", static_cast<int32_t>(audio));
@@ -451,6 +459,7 @@ void NuPlayer::Renderer::changeAudioFormat(
 }
 
 void NuPlayer::Renderer::onMessageReceived(const sp<AMessage> &msg) {
+    VTRACE_METHOD();
     switch (msg->what()) {
         case kWhatOpenAudioSink:
         {
@@ -874,6 +883,8 @@ size_t NuPlayer::Renderer::fillAudioBuffer(void *buffer, size_t size) {
             CHECK(entry->mBuffer->meta()->findInt64("timeUs", &mediaTimeUs));
             ALOGV("fillAudioBuffer: rendering audio at media time %.2f secs", mediaTimeUs / 1E6);
             setAudioFirstAnchorTimeIfNeeded_l(mediaTimeUs);
+            VTRACE_INT("drop-audio", 0);
+            VTRACE_ASYNC_END("render-audio", (int)mediaTimeUs);
         }
 
         size_t copy = entry->mBuffer->size() - entry->mOffset;
@@ -1055,6 +1066,8 @@ bool NuPlayer::Renderer::onDrainAudioQueue() {
             ALOGV("onDrainAudioQueue: rendering audio at media time %.2f secs",
                     mediaTimeUs / 1E6);
             onNewAudioMediaTime(mediaTimeUs);
+            VTRACE_INT("drop-audio", 0);
+            VTRACE_ASYNC_END("render-audio", (int)mediaTimeUs);
         }
 
         size_t copy = entry->mBuffer->size() - entry->mOffset;
@@ -1348,6 +1361,7 @@ void NuPlayer::Renderer::onDrainVideoQueue() {
     int64_t mediaTimeUs = -1;
     if (mFlags & FLAG_REAL_TIME) {
         CHECK(entry->mBuffer->meta()->findInt64("timeUs", &realTimeUs));
+        mediaTimeUs = realTimeUs; // for trace purpose only
     } else {
         CHECK(entry->mBuffer->meta()->findInt64("timeUs", &mediaTimeUs));
 
@@ -1397,6 +1411,8 @@ void NuPlayer::Renderer::onDrainVideoQueue() {
     entry->mNotifyConsumed->setInt32("render", !tooLate);
     entry->mNotifyConsumed->post();
     mVideoQueue.erase(mVideoQueue.begin());
+    VTRACE_INT("drop-video", (int)tooLate);
+    VTRACE_ASYNC_END("render-video", (int)mediaTimeUs);
     entry = NULL;
 
     mVideoSampleReceived = true;
@@ -1523,6 +1539,8 @@ void NuPlayer::Renderer::onQueueBuffer(const sp<AMessage> &msg) {
 
         (*mAudioQueue.begin()).mNotifyConsumed->post();
         mAudioQueue.erase(mAudioQueue.begin());
+        VTRACE_INT("drop-audio", 1);
+        VTRACE_ASYNC_END("render-audio", (int)firstAudioTimeUs);
         return;
     }
 
@@ -1862,7 +1880,7 @@ void NuPlayer::Renderer::onAudioTearDown(AudioTearDownReason reason) {
 void NuPlayer::Renderer::startAudioOffloadPauseTimeout() {
     if (offloadingAudio()) {
         int64_t pauseTimeOutDuration = property_get_int64(
-            "audio.offload.pstimeout.secs",(kOffloadPauseMaxUs/1000000)/*default*/);
+            "vendor.audio.offload.pstimeout.secs",(kOffloadPauseMaxUs/1000000)/*default*/);
         mWakeLock->acquire();
         sp<AMessage> msg = new AMessage(kWhatAudioOffloadPauseTimeout, this);
         msg->setInt32("drainGeneration", mAudioOffloadPauseTimeoutGeneration);
@@ -1956,6 +1974,7 @@ status_t NuPlayer::Renderer::onOpenAudioSink(
             offloadInfo.stream_type = AUDIO_STREAM_MUSIC;
             offloadInfo.bit_rate = avgBitRate;
             offloadInfo.has_video = hasVideo;
+            offloadInfo.offload_buffer_size = offloadBufferSize;
             offloadInfo.is_streaming = isStreaming;
             offloadInfo.offload_buffer_size = offloadBufferSize;
 

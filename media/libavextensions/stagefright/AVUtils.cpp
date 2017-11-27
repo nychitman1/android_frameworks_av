@@ -30,6 +30,7 @@
 #define LOG_TAG "AVUtils"
 #include <utils/Log.h>
 
+#include <media/IMediaExtractor.h>
 #include <media/stagefright/foundation/ADebug.h>
 #include <media/stagefright/foundation/AMessage.h>
 #include <media/stagefright/foundation/ABuffer.h>
@@ -147,8 +148,8 @@ int64_t AVUtils::overwriteTimeOffset(bool, int64_t inputBufferTimeOffsetUs, int6
     return inputBufferTimeOffsetUs;
 }
 
-const char *AVUtils::getCustomCodecsLocation() {
-    return "/etc/media_codecs.xml";
+void AVUtils::getCustomCodecsLocation(char *, int32_t) {
+    return;
 }
 
 void AVUtils::setIntraPeriod(
@@ -156,8 +157,8 @@ void AVUtils::setIntraPeriod(
     return;
 }
 
-const char *AVUtils::getCustomCodecsPerformanceLocation() {
-    return "/etc/media_codecs_performance.xml";
+void AVUtils::getCustomCodecsPerformanceLocation(char *, int32_t) {
+    return;
 }
 
 const char *AVUtils::getComponentRole(bool isEncoder, const char *mime) {
@@ -166,6 +167,14 @@ const char *AVUtils::getComponentRole(bool isEncoder, const char *mime) {
 
 bool AVUtils::IsHevcIDR(const sp<ABuffer> &) {
    return false;
+}
+
+sp<DataSource> AVUtils::wrapTraceDataSource(const sp<DataSource> &dataSource) {
+    return dataSource;
+}
+
+sp<IMediaExtractor> AVUtils::wrapTraceMediaExtractor(const sp<IMediaExtractor> &extractor) {
+    return extractor;
 }
 
 sp<AMessage> AVUtils::fillExtradata(sp<MediaCodecBuffer>&, sp<AMessage> &format) {
@@ -182,4 +191,3 @@ AVUtils *AVUtils::sInst =
         ExtensionsLoader<AVUtils>::createInstance("createExtendedUtils");
 
 } //namespace android
-
